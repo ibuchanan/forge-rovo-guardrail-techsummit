@@ -6,27 +6,25 @@ app:
     name: nodejs24.x
 modules:
   rovo:agent:
-    - key: forge-rovo-guardrail-techsummit-hello-world-agent
-      name: forge-rovo-guardrail-techsummit
-      description: An agent for testing Forge agent functionality
+    - key: forge-rovo-guardrail-techsummit
+      name: Tech Summit Judge
+      description: An agent for judging agent instructions
       actions:
-        - hello-world-logger
+        - read-page
       conversationStarters:
-        - Log a message to Forge logs
+        - Assess this page for the Tech Summit agent score
       prompt: resource:agent-prompts;agent-instructions.md
   action:
-    - key: hello-world-logger
-      name: Log a message
-      description: |
-        When a user asks to log a message, this action logs the message to the Forge logs.
+    - key: read-page
+      name: Read a Confluence page
+      description: Read the current page from the Rovo context
       actionVerb: GET
-      function: messageLogger
+      function: fetchPage
       inputs:
-        message:
-          title: Message
-          description: |
-            "The message that the user has requested be logged to Forge logs"
-          required: true
+        pageId:
+          title: Page ID
+          description: The ID of the Page to be fetched.
+          required: false
           type: string
   trigger:
     - key: trigger-lifecycle
@@ -40,12 +38,15 @@ modules:
       response:
         type: dynamic
   function:
-    - key: messageLogger
-      handler: index.messageLogger
+    - key: fetchPage
+      handler: index.fetchPage
     - key: trigger
       handler: index.trigger
     - key: lifecycle-handler
       handler: index.lifecycle
+permissions:
+  scopes:
+    - read:page:confluence
 resources:
   - key: agent-prompts
     path: prompts
