@@ -1,0 +1,51 @@
+app:
+  id: ari:cloud:ecosystem::app/de82f3f1-fde6-4f0d-a29c-e36c2e1e58e7
+  runtime:
+    architecture: arm64
+    memoryMB: 256
+    name: nodejs24.x
+modules:
+  rovo:agent:
+    - key: forge-rovo-guardrail-techsummit-hello-world-agent
+      name: forge-rovo-guardrail-techsummit
+      description: An agent for testing Forge agent functionality
+      actions:
+        - hello-world-logger
+      conversationStarters:
+        - Log a message to Forge logs
+      prompt: resource:agent-prompts;agent-instructions.md
+  action:
+    - key: hello-world-logger
+      name: Log a message
+      description: |
+        When a user asks to log a message, this action logs the message to the Forge logs.
+      actionVerb: GET
+      function: messageLogger
+      inputs:
+        message:
+          title: Message
+          description: |
+            "The message that the user has requested be logged to Forge logs"
+          required: true
+          type: string
+  trigger:
+    - key: trigger-lifecycle
+      events:
+        - avi:forge:installed:app
+        - avi:forge:upgraded:app
+      function: lifecycle-handler
+  webtrigger:
+    - key: dev-trigger
+      function: trigger
+      response:
+        type: dynamic
+  function:
+    - key: messageLogger
+      handler: index.messageLogger
+    - key: trigger
+      handler: index.trigger
+    - key: lifecycle-handler
+      handler: index.lifecycle
+resources:
+  - key: agent-prompts
+    path: prompts
