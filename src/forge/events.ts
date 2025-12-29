@@ -1,6 +1,6 @@
 import { asApp, asUser } from "@forge/api";
 // import type { InstallationEvent, UpgradeEvent } from "./lifecycle";
-import { truncateEvents } from "./logging";
+// import { truncateEvents } from "./logging";
 
 export interface UniquelyIdentifiedObject {
   id: string;

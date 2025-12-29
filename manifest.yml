@@ -11,6 +11,7 @@ modules:
       description: An agent for judging agent instructions
       actions:
         - read-page
+        - log-assessment
       conversationStarters:
         - Assess this page for the Tech Summit agent score
       prompt: resource:agent-prompts;agent-instructions.md
@@ -25,6 +26,20 @@ modules:
           title: Page ID
           description: The ID of the Page to be fetched.
           required: false
+          type: string
+    - key: log-assessment
+      name: Log an assessment result
+      description: >
+        When the agent performs assessment,
+        this action logs the result to the Forge logs.
+      actionVerb: GET
+      function: logAssessment
+      inputs:
+        assessment:
+          title: Assessment
+          description: >
+            The assessment that the has been performed on an issue
+          required: true
           type: string
   trigger:
     - key: trigger-lifecycle
@@ -44,9 +59,12 @@ modules:
       handler: index.trigger
     - key: lifecycle-handler
       handler: index.lifecycle
+    - key: logAssessment
+      handler: index.logAssessment
 permissions:
   scopes:
     - read:page:confluence
+    - read:confluence-user
 resources:
   - key: agent-prompts
     path: prompts

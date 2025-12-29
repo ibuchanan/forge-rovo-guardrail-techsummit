@@ -1,13 +1,12 @@
 export { lifecycle } from "./forge/lifecycle";
+export { logAssessment } from "./forge/logging";
 
 import api, { route } from "@forge/api";
-import { FetchPagePayload } from "./actionpayload";
+import type { FetchPagePayload } from "./actionpayload";
 
 export function pickPage(payload: FetchPagePayload): FetchPagePayload | string {
-  console.debug(`Request: Explicit Page Id "${payload.pageId}"`);
-  console.debug(
-    `Request: Rovo Context "${payload.context.confluence?.contentId}"`,
-  );
+  // console.debug(`Request: Explicit Page Id "${payload.pageId}"`);
+  // console.debug(`Request: Rovo Context "${payload.context.confluence?.contentId}"`);
   if (payload.pageId) {
     return {
       pageId: payload.pageId,
@@ -28,7 +27,7 @@ export async function fetchPage(payload: FetchPagePayload): Promise<string> {
   if (typeof page === "string") {
     return page;
   }
-  console.log(`Rovo sent pageId: ${payload.pageId}`);
+  console.debug(`Rovo sent pageId: ${payload.pageId}`);
   const id = payload.pageId ?? "0";
   try {
     const response = await api
@@ -41,13 +40,13 @@ export async function fetchPage(payload: FetchPagePayload): Promise<string> {
           },
         },
       );
-    console.log(`Response: ${response.status} ${response.statusText}`);
+    console.debug(`Response: ${response.status} ${response.statusText}`);
     // console.debug(JSON.stringify(await response.json()));
     if (response.ok) {
-      console.debug(`Success: found "${id}`);
+      console.debug(`Success: found "${id}"`);
       const responseJson = await response.json();
-      const renderedResult = responseJson.body.export_view;
-      console.debug(`Content: ${renderedResult}`);
+      const renderedResult = responseJson.body.export_view.value;
+      // console.debug(`Content: ${JSON.stringify(renderedResult)}`);
       return renderedResult;
     }
     // TODO: check status codes and throw errors
