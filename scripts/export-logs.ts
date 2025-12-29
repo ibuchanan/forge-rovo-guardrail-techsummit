@@ -8,8 +8,7 @@ Working log export using the REST API with Basic auth and hard-coded defaults.
 - Output: writes all pages to ./logs-export.jsonl (one JSON object per line)
 */
 
-import { createWriteStream, existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 // Hard-coded config
 const ENVIRONMENTS = {
@@ -19,14 +18,15 @@ const ENVIRONMENTS = {
 };
 const ENVIRONMENT_ID = ENVIRONMENTS["production"];
 // Time window in minutes (capped between 1 and 60)
-const TIME_WINDOW_MINUTES = 15; // default: last 15 minutes
-const OUTPUT_PATH = "./logs-export.json";
+const TIME_WINDOW_MINUTES = 60; // default: last 15 minutes
+const OUTPUT_PATH = "./logs-summary.json";
 const MESSAGE_FILTER: string | undefined = undefined; // e.g., 'example_search_text'
-const LEVELS: string[] = ["INFO"]; // duplicate level params supported by API
-const SITE_IDS: string[] = [
-  // e.g., 'ari:cloud:confluence::site/089a1455-4ea0-122a-b70c-5b17360f047d',
-  //       'ari:cloud:jira::site/4eecb4e0-22cc-4e18-bad1-b58a154be343',
-];
+const LEVELS: string[] = ["INFO", "ERROR"];
+const SITE_IDS: string[] = [];
+
+// Regex to match: "[Liam Estrada](lestrada@oneatlassian.atlassian.com): 21"
+// Captures: 1=Name, 2=Email, 3=Value
+const LOG_PATTERN = /^\[([^\]]+)\]\(([^)]+)\):\s*(\d+)$/;
 
 function loadDotEnvIfPresent() {
   // Simple .env loader to avoid extra dependencies
@@ -90,20 +90,19 @@ function buildUrl(
   return base.toString();
 }
 
-async function fetchAllPages(
+async function fetchAndProcessLogs(
   appId: string,
   start: Date,
   end: Date,
   authHeader: string,
-  outFile: string,
 ) {
-  const out = createWriteStream(resolve(outFile));
   let cursor: string | undefined;
-  let page = 0;
+  const scores: Record<string, number> = {};
+
+  console.log("Fetching logs...");
   try {
     do {
       const url = buildUrl(appId, start, end, cursor);
-      console.debug(`url: ${url}`);
       const res = await fetch(url, {
         method: "GET",
         headers: {
@@ -111,20 +110,48 @@ async function fetchAllPages(
           Accept: "application/json",
         },
       });
+
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
       }
+
       const data = await res.json();
-      page++;
-      console.log(`Fetched page ${page}${data.cursor ? " (more...)" : ""}`);
-      out.write(JSON.stringify(data) + "\n");
+      const logs = (data.appLogs as any[]) || [];
+
+      for (const log of logs) {
+        const msg = log?.body?.stringValue;
+        if (typeof msg === "string") {
+          const match = msg.match(LOG_PATTERN);
+          if (match) {
+            // match[1] = Name, match[2] = Email, match[3] = Value
+            const key = `[${match[1]}](${match[2]})`;
+            const val = parseInt(match[3], 10);
+            scores[key] = val;
+          }
+        }
+      }
       cursor = data.cursor as string | undefined;
+      if (cursor) process.stdout.write(".");
     } while (cursor);
-  } finally {
-    out.end();
+  } catch (err) {
+    console.error("\nError fetching logs:", err);
   }
-  console.log(`Wrote logs to ${resolve(outFile)}`);
+  console.log("\nDone fetching.");
+
+  // Sort descending by value
+  const sortedEntries = Object.entries(scores).sort(([, a], [, b]) => b - a);
+  const sortedObj: Record<string, number> = Object.fromEntries(sortedEntries);
+
+  // Write to file
+  writeFileSync(OUTPUT_PATH, JSON.stringify(sortedObj, null, 2));
+  console.log(`\nSummary written to ${OUTPUT_PATH}`);
+
+  // Print top 10
+  console.log("\nTop 10:");
+  sortedEntries.slice(0, 10).forEach(([key, val], idx) => {
+    console.log(`${idx + 1}. ${key}: ${val}`);
+  });
 }
 
 async function main() {
@@ -142,7 +169,7 @@ async function main() {
   const minutes = Math.max(1, Math.min(60, TIME_WINDOW_MINUTES));
   const startDate = new Date(now.getTime() - minutes * 60 * 1000);
 
-  await fetchAllPages(appId, startDate, endDate, authHeader, OUTPUT_PATH);
+  await fetchAndProcessLogs(appId, startDate, endDate, authHeader);
 }
 
 main().catch((err) => {
