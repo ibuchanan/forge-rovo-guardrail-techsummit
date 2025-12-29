@@ -15,7 +15,8 @@
     "format": "biome format --write",
     "lint": "biome lint",
     "test": "vitest",
-    "view": "promptfoo view"
+    "view": "promptfoo view",
+    "export:logs": "tsx ./scripts/export-logs.ts"
   },
   "dependencies": {
     "@forge/api": "^6.4.2"
