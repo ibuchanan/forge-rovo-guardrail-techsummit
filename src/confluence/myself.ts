@@ -37,7 +37,7 @@ export async function myself(
     // console.debug(`myself response: ${response.status} ${response.statusText}`);
     // console.debug(JSON.stringify(await response.json()));
     if (response.ok) {
-      console.debug(`myself success`);
+      // console.debug(`myself success`);
       const me = (await response.json()) as UserResponse;
       // console.debug(`myself user: [${me.displayName}](${me.accountId})`);
       return me;

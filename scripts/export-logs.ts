@@ -5,7 +5,7 @@ Working log export using the REST API with Basic auth and hard-coded defaults.
 - Time window: configurable minutes (default 15, max 60)
 - App id: read from manifest.yml (ari:...:app/<uuid>)
 - Optional site filters: set in SITE_IDS array below
-- Output: writes all pages to ./logs-export.jsonl (one JSON object per line)
+- Output: writes all pages to ./export.log (one JSON object per line)
 */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -19,7 +19,7 @@ const ENVIRONMENTS = {
 const ENVIRONMENT_ID = ENVIRONMENTS["production"];
 // Time window in minutes (capped between 1 and 60)
 const TIME_WINDOW_MINUTES = 60; // default: last 15 minutes
-const OUTPUT_PATH = "./logs-summary.json";
+const OUTPUT_PATH = "./export.log";
 const MESSAGE_FILTER: string | undefined = undefined; // e.g., 'example_search_text'
 const LEVELS: string[] = ["INFO", "ERROR"];
 const SITE_IDS: string[] = [];
@@ -127,7 +127,9 @@ async function fetchAndProcessLogs(
             // match[1] = Name, match[2] = Email, match[3] = Value
             const key = `[${match[1]}](${match[2]})`;
             const val = parseInt(match[3], 10);
-            scores[key] = val;
+            if (!(key in scores)) {
+              scores[key] = val;
+            }
           }
         }
       }
