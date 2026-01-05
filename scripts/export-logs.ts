@@ -18,11 +18,12 @@ const ENVIRONMENTS = {
 };
 const ENVIRONMENT_ID = ENVIRONMENTS["production"];
 // Time window in minutes (capped between 1 and 60)
-const TIME_WINDOW_MINUTES = 60; // default: last 15 minutes
+const TIME_WINDOW_MINUTES = 60; // default: last hour
 const OUTPUT_PATH = "./export.log";
 const MESSAGE_FILTER: string | undefined = undefined; // e.g., 'example_search_text'
 const LEVELS: string[] = ["INFO", "ERROR"];
 const SITE_IDS: string[] = [];
+const TOP_N = 20; // Logs all participants but prints the TOP_N to console
 
 // Regex to match: "[Liam Estrada](lestrada@oneatlassian.atlassian.com): 21"
 // Captures: 1=Name, 2=Email, 3=Value
@@ -149,9 +150,9 @@ async function fetchAndProcessLogs(
   writeFileSync(OUTPUT_PATH, JSON.stringify(sortedObj, null, 2));
   console.log(`\nSummary written to ${OUTPUT_PATH}`);
 
-  // Print top 10
-  console.log("\nTop 10:");
-  sortedEntries.slice(0, 10).forEach(([key, val], idx) => {
+  // Print top N
+  console.log(`\nTop ${TOP_N}:`);
+  sortedEntries.slice(0, TOP_N).forEach(([key, val], idx) => {
     console.log(`${idx + 1}. ${key}: ${val}`);
   });
 }
